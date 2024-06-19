@@ -1,0 +1,67 @@
+-- Table structure for table `clearances`
+CREATE TABLE `clearances` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `type` varchar(50) NOT NULL,
+  `status` varchar(50) NOT NULL,
+  `date_applied` datetime NOT NULL,
+  `date_approved` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `clearances_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table structure for table `documents`
+CREATE TABLE `documents` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `document_type` varchar(50) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `uploaded_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `documents_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table structure for table `payments`
+CREATE TABLE `payments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `clearance_id` int(11) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `date_paid` datetime NOT NULL,
+  `payment_method` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `clearance_id` (`clearance_id`),
+  CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`clearance_id`) REFERENCES `clearances` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table structure for table `profile`
+CREATE TABLE `profile` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `firstname` varchar(255) NOT NULL,
+  `lastname` varchar(255) NOT NULL,
+  `middlename` varchar(255) DEFAULT NULL,
+  `address` varchar(255) NOT NULL,
+  `city` varchar(255) NOT NULL,
+  `province` varchar(255) NOT NULL,
+  `zipcode` varchar(255) NOT NULL,
+  `phone_number` varchar(20) NOT NULL,
+  `birthplace` varchar(255) NOT NULL,
+  `birthdate` date NOT NULL,
+  `citizenship` varchar(255) NOT NULL,
+  `gender` varchar(50) NOT NULL,
+  `profilepicture` varchar(255) DEFAULT NULL,
+  `status` varchar(50) DEFAULT 'Pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Table structure for table `users`
+CREATE TABLE `users` (
+  `ID` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `user_type` varchar(255) NOT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
