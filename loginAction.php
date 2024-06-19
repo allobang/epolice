@@ -15,12 +15,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Verify the password
         if (password_verify($password, $row['password'])) {
             // Password is correct, store user details in session variables
+            session_start();
             $_SESSION['logged_in'] = true;
             $_SESSION['userid'] = $row['id'];
             $_SESSION['name'] = $row['name'];
             $_SESSION['user_type'] = $row['user_type'];
-            // Redirect to a secure page
-            header("Location: newClearance.php");
+            
+            // Redirect based on user type
+            if ($row['user_type'] == 'admin') {
+                header("Location: monitor_users.php");
+            } else {
+                header("Location: newClearance.php");
+            }
         } else {
             // Password is not correct
             echo "Invalid username or password";
