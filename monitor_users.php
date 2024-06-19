@@ -1,8 +1,8 @@
 <?php
 include 'includes/init.php';
-require_once 'vendor/autoload.php'; // Ensure this path is correct
+// require_once 'vendor/autoload.php'; // Ensure this path is correct
 
-use Twilio\Rest\Client;
+// use Twilio\Rest\Client;
 
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     header("Location: login.php");
@@ -10,10 +10,10 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 }
 
 // Twilio credentials from environment variables
-$account_sid = getenv('TWILIO_ACCOUNT_SID');
-$auth_token = getenv('TWILIO_AUTH_TOKEN');
-$twilio_number = getenv('TWILIO_NUMBER');
-$client = new Client($account_sid, $auth_token);
+// $account_sid = getenv('TWILIO_ACCOUNT_SID');
+// $auth_token = getenv('TWILIO_AUTH_TOKEN');
+// $twilio_number = getenv('TWILIO_NUMBER');
+// $client = new Client($account_sid, $auth_token);
 
 // Fetch user data and their progress
 $sql = "
@@ -35,20 +35,20 @@ if (!$result) {
 }
 
 // Function to send SMS
-function send_sms($client, $phone_number, $message) {
-    global $twilio_number;
-    try {
-        $client->messages->create(
-            $phone_number,
-            array(
-                'from' => $twilio_number,
-                'body' => $message
-            )
-        );
-    } catch (Exception $e) {
-        error_log("Failed to send SMS: " . $e->getMessage());
-    }
-}
+// function send_sms($client, $phone_number, $message) {
+//     global $twilio_number;
+//     try {
+//         $client->messages->create(
+//             $phone_number,
+//             array(
+//                 'from' => $twilio_number,
+//                 'body' => $message
+//             )
+//         );
+//     } catch (Exception $e) {
+//         error_log("Failed to send SMS: " . $e->getMessage());
+//     }
+// }
 ?>
 <!doctype html>
 <html lang="en">
@@ -94,20 +94,20 @@ function send_sms($client, $phone_number, $message) {
                                             echo "<a href=\"view_profile.php?user_id=" . $row["ID"] . "\" class=\"btn btn-outline-info btn-rounded\">View Profile</a>";
                                             echo "<a href=\"view_documents.php?user_id=" . $row["ID"] . "\" class=\"btn btn-outline-info btn-rounded\">View Documents</a>";
                                             echo "<a href=\"view_payments.php?user_id=" . $row["ID"] . "\" class=\"btn btn-outline-info btn-rounded\">View Payments</a>";
-                                            echo "<a href=\"update_status.php?id=" . $row["ID"] . "&status=pending\" class=\"btn btn-outline-warning btn-rounded\" onclick=\"send_sms('Pending', " . $row["phone_number"] . ")\">Pending</a>";
-                                            echo "<a href=\"update_status.php?id=" . $row["ID"] . "&status=approved\" class=\"btn btn-outline-success btn-rounded\" onclick=\"send_sms('Approved', " . $row["phone_number"] . ")\">Approve</a>";
-                                            echo "<a href=\"update_status.php?id=" . $row["ID"] . "&status=rejected\" class=\"btn btn-outline-danger btn-rounded\" onclick=\"send_sms('Rejected', " . $row["phone_number"] . ")\">Reject</a>";
+                                            echo "<a href=\"update_status.php?id=" . $row["ID"] . "&status=pending\" class=\"btn btn-outline-warning btn-rounded\">Pending</a>";
+                                            echo "<a href=\"update_status.php?id=" . $row["ID"] . "&status=approved\" class=\"btn btn-outline-success btn-rounded\">Approve</a>";
+                                            echo "<a href=\"update_status.php?id=" . $row["ID"] . "&status=rejected\" class=\"btn btn-outline-danger btn-rounded\">Reject</a>";
                                             echo "</div>";
                                             echo "</td>";
                                             echo "</tr>";
 
                                             // Send SMS based on status
-                                            if ($_GET['id'] == $row["ID"] && isset($_GET['status'])) {
-                                                $status = $_GET['status'];
-                                                $phone_number = $row["phone_number"];
-                                                $message = "Your application status has been updated to: " . $status;
-                                                send_sms($client, $phone_number, $message);
-                                            }
+                                            // if ($_GET['id'] == $row["ID"] && isset($_GET['status'])) {
+                                            //     $status = $_GET['status'];
+                                            //     $phone_number = $row["phone_number"];
+                                            //     $message = "Your application status has been updated to: " . $status;
+                                            //     send_sms($client, $phone_number, $message);
+                                            // }
                                         }
                                     } else {
                                         echo "<tr><td colspan='7'>0 results</td></tr>";
