@@ -1,13 +1,12 @@
 <?php
+session_start();
 include 'layout/head.php';
-include 'connection.php';
-include_once 'functions.php';
+require_once 'connection.php';
+require_once 'functions.php';
+require_once 'includes/auth.php'; // Use require_once to ensure it's included only once
 
 // Check if user is logged in
-if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-    header("Location: login.php");
-    exit;
-}
+checkUserLoggedIn();
 
 $userId = $_SESSION['userid'];
 
@@ -18,17 +17,46 @@ $userProfile = fetchUserProfile($conn, $userId);
 $hasPersonalInfo = !empty($userProfile['firstname']) && !empty($userProfile['lastname']) && !empty($userProfile['address']) && !empty($userProfile['city']) && !empty($userProfile['province']) && !empty($userProfile['zipcode']) && !empty($userProfile['birthplace']) && !empty($userProfile['birthdate']) && !empty($userProfile['citizenship']) && !empty($userProfile['gender']);
 $hasProfilePicture = !empty($userProfile['profilepicture']);
 
+// Get profile status
+
+if ($userProfile) {
+    $profileStatus = $userProfile['status'];
+}
+
+
 // Check if user has uploaded valid ID and barangay clearance
-$validIdUploaded = checkDocumentUploaded($conn, $userId, 'valid_id');
-$barangayClearanceUploaded = checkDocumentUploaded($conn, $userId, 'barangay_clearance');
+$validIdStatus = getDocumentStatus($conn, $userId, 'valid_id');
+$barangayClearanceStatus = getDocumentStatus($conn, $userId, 'barangay_clearance');
+
+$validIdUploaded = $validIdStatus !== null;
+$barangayClearanceUploaded = $barangayClearanceStatus !== null;
 
 $requirementsUploaded = $validIdUploaded && $barangayClearanceUploaded;
 
 // Check if user has uploaded payment receipt
-$paymentReceiptUploaded = checkPaymentReceiptUploaded($conn, $userId);
+$paymentReceiptStatus = getPaymentReceiptStatus($conn, $userId);
+$paymentReceiptUploaded = $paymentReceiptStatus !== null;
 
 // Fetch clearance status
 $clearanceStatus = fetchClearanceStatus($conn, $userId);
+if (empty($clearanceStatus['hit_status'])) {
+    $clearanceStatus['hit_status'] = 'Pending';
+}
+
+$status = $clearanceStatus['status'];
+$hitStatus = $clearanceStatus['hit_status'];
+
+// Check if user has booked an appointment
+$appointmentBooked = checkAppointmentBooked($conn, $userId);
+
+// Fetch appointment details if booked
+$appointmentDetails = [];
+if ($appointmentBooked) {
+    $stmt = $conn->prepare("SELECT appointment_date, time_slot FROM appointments WHERE user_id = ?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $appointmentDetails = $stmt->get_result()->fetch_assoc();
+}
 ?>
 
 <!doctype html>
@@ -45,6 +73,8 @@ $clearanceStatus = fetchClearanceStatus($conn, $userId);
         .card {
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            margin: 10px;
         }
 
         .card-header {
@@ -108,6 +138,14 @@ $clearanceStatus = fetchClearanceStatus($conn, $userId);
             background-color: #dc3545;
         }
 
+        .status-hit {
+            background-color: #dc3545;
+        }
+
+        .status-no-hit {
+            background-color: #28a745;
+        }
+
         .page-title {
             color: #007bff;
         }
@@ -119,6 +157,8 @@ $clearanceStatus = fetchClearanceStatus($conn, $userId);
 
         .step-card {
             width: 250px;
+            flex: 1;
+            margin: 5px;
         }
 
         .icon-success {
@@ -127,6 +167,16 @@ $clearanceStatus = fetchClearanceStatus($conn, $userId);
 
         .icon-fail {
             color: #dc3545;
+        }
+
+        .icon-pending {
+            color: #ffc107;
+        }
+
+        .step-container {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
         }
     </style>
 </head>
@@ -152,8 +202,13 @@ $clearanceStatus = fetchClearanceStatus($conn, $userId);
                             <div class="card">
                                 <div class="card-body">
                                     <h5 class="card-title">Application Status</h5>
-                                    <p class="card-text">Your current application status is:</p>
-                                    <span class="status-badge status-<?= strtolower($clearanceStatus); ?>"><?= ucfirst($clearanceStatus); ?></span>
+                                    <p class="card-text">Your current application status is: <span class="status-badge status-<?= strtolower($status); ?>"><?= ucfirst($status); ?></span></p>
+
+                                    <p class="mt-2">HIT Status: <span class="status-badge status-<?= strtolower(str_replace(' ', '-', $hitStatus)); ?>"><?= ucfirst($hitStatus); ?></span></p>
+                                    <?php if ($appointmentBooked) : ?>
+                                        <p class="mt-2">Appointment Date: <?= date('F j, Y', strtotime($appointmentDetails['appointment_date'])); ?></p>
+                                        <p>Time Slot: <?= $appointmentDetails['time_slot']; ?></p>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -162,21 +217,50 @@ $clearanceStatus = fetchClearanceStatus($conn, $userId);
                     <div class="progress mt-4">
                         <?php
                         $progress = 0;
-                        if ($hasPersonalInfo && $hasProfilePicture) $progress += 33;
-                        if ($requirementsUploaded) $progress += 33;
-                        if ($paymentReceiptUploaded) $progress += 34;
+                        if ($appointmentBooked) $progress += 25;
+                        if ($hasPersonalInfo && $hasProfilePicture) $progress += 25;
+                        if ($requirementsUploaded) $progress += 25;
+                        if ($paymentReceiptUploaded) $progress += 25;
                         ?>
                         <div class="progress-bar" role="progressbar" style="width: <?= $progress; ?>%;" aria-valuenow="<?= $progress; ?>" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
-                    <div class="d-flex justify-content-center flex-wrap">
-                        <!-- Step 1 -->
-                        <div class="card text-center step-card m-3">
+                    <div class="step-container">
+                        <!-- Step 1: Appointment -->
+                        <div class="card text-center step-card">
                             <div class="card-header">Step 1</div>
+                            <div class="card-body step-card-body">
+                                <h5 class="card-title">Book Appointment</h5>
+                                <p class="card-text">
+                                    <?php if ($appointmentBooked) : ?>
+                                        <i class="fas fa-check-circle icon-success"></i> Appointment Booked
+                                    <?php else : ?>
+                                        <i class="fas fa-times-circle icon-fail"></i> Book an Appointment
+                                    <?php endif; ?>
+                                </p>
+                                <div class="btn-container">
+                                    <?php if ($appointmentBooked) : ?>
+                                        <span class="check-mark"><i class="fas fa-check-circle icon-success"></i> Completed</span>
+                                        <a href="book_appointment.php?action=edit" class="btn btn-primary">Edit Appointment</a>
+                                    <?php else : ?>
+                                        <a href="book_appointment.php" class="btn btn-primary">Go to Step 1</a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Step 2: Profile -->
+                        <div class="card text-center step-card">
+                            <div class="card-header">Step 2</div>
                             <div class="card-body step-card-body">
                                 <h5 class="card-title">Personal Information</h5>
                                 <p class="card-text">
-                                    <?php if ($hasPersonalInfo) : ?>
-                                        <i class="fas fa-check-circle icon-success"></i> Fill up Personal Information form
+                                    <?php if (isset($profileStatus)) : ?>
+                                        <?php if ($profileStatus == 'Approved') : ?>
+                                            <i class="fas fa-check-circle icon-success"></i> Fill up Personal Information form
+                                        <?php elseif ($profileStatus == 'Rejected') : ?>
+                                            <i class="fas fa-times-circle icon-fail"></i> Fill up Personal Information form
+                                        <?php else : ?>
+                                            <i class="fas fa-hourglass-half icon-pending"></i> Fill up Personal Information form
+                                        <?php endif; ?>
                                     <?php else : ?>
                                         <i class="fas fa-times-circle icon-fail"></i> Fill up Personal Information form
                                     <?php endif; ?><br>
@@ -185,39 +269,15 @@ $clearanceStatus = fetchClearanceStatus($conn, $userId);
                                     <?php else : ?>
                                         <i class="fas fa-times-circle icon-fail"></i> Upload 2x2 photo
                                     <?php endif; ?>
+
                                 </p>
                                 <div class="btn-container">
-                                    <?php if ($hasPersonalInfo && $hasProfilePicture) : ?>
-                                        <span class="check-mark"><i class="fas fa-check-circle icon-success"></i> Completed</span>
-                                    <?php else : ?>
-                                        <a href="profileDisplay.php" class="btn btn-primary">Go to Step 1</a>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Step 2 -->
-                        <div class="card text-center step-card m-3">
-                            <div class="card-header">Step 2</div>
-                            <div class="card-body step-card-body">
-                                <h5 class="card-title">Upload Requirements</h5>
-                                <p class="card-text">
-                                    <?php if ($validIdUploaded) : ?>
-                                        <i class="fas fa-check-circle icon-success"></i> Valid ID
-                                    <?php else : ?>
-                                        <i class="fas fa-times-circle icon-fail"></i> Valid ID
-                                    <?php endif; ?><br>
-                                    <?php if ($barangayClearanceUploaded) : ?>
-                                        <i class="fas fa-check-circle icon-success"></i> Barangay Clearance
-                                    <?php else : ?>
-                                        <i class="fas fa-times-circle icon-fail"></i> Barangay Clearance
-                                    <?php endif; ?>
-                                </p>
-                                <div class="btn-container">
-                                    <?php if ($hasPersonalInfo && $hasProfilePicture) : ?>
-                                        <?php if ($requirementsUploaded) : ?>
+                                    <?php if ($appointmentBooked) : ?>
+                                        <?php if ($hasPersonalInfo && $hasProfilePicture) : ?>
                                             <span class="check-mark"><i class="fas fa-check-circle icon-success"></i> Completed</span>
+                                            <a href="profileDisplay.php?action=edit" class="btn btn-primary">Edit Personal Info</a>
                                         <?php else : ?>
-                                            <a href="upload_requirements.php" class="btn btn-primary">Go to Step 2</a>
+                                            <a href="profileDisplay.php" class="btn btn-primary">Go to Step 2</a>
                                         <?php endif; ?>
                                     <?php else : ?>
                                         <button class="btn btn-primary" disabled>Go to Step 2</button>
@@ -225,27 +285,81 @@ $clearanceStatus = fetchClearanceStatus($conn, $userId);
                                 </div>
                             </div>
                         </div>
-                        <!-- Step 3 -->
-                        <div class="card text-center step-card m-3">
+                        <!-- Step 3: Document -->
+                        <div class="card text-center step-card">
                             <div class="card-header">Step 3</div>
+                            <div class="card-body step-card-body">
+                                <h5 class="card-title">Upload Requirements</h5>
+                                <p class="card-text">
+                                    <?php if ($validIdStatus) : ?>
+                                        <?php if ($validIdStatus == 'Approved') : ?>
+                                            <i class="fas fa-check-circle icon-success"></i> Valid ID
+                                        <?php elseif ($validIdStatus == 'Rejected') : ?>
+                                            <i class="fas fa-times-circle icon-fail"></i> Valid ID
+                                        <?php else : ?>
+                                            <i class="fas fa-hourglass-half icon-pending"></i> Valid ID
+                                        <?php endif; ?>
+                                    <?php else : ?>
+                                        <i class="fas fa-times-circle icon-fail"></i> Valid ID
+                                    <?php endif; ?><br>
+                                    <?php if ($barangayClearanceStatus) : ?>
+                                        <?php if ($barangayClearanceStatus == 'Approved') : ?>
+                                            <i class="fas fa-check-circle icon-success"></i> Barangay Clearance
+                                        <?php elseif ($barangayClearanceStatus == 'Rejected') : ?>
+                                            <i class="fas fa-times-circle icon-fail"></i> Barangay Clearance
+                                        <?php else : ?>
+                                            <i class="fas fa-hourglass-half icon-pending"></i> Barangay Clearance
+                                        <?php endif; ?>
+                                    <?php else : ?>
+                                        <i class="fas fa-times-circle icon-fail"></i> Barangay Clearance
+                                    <?php endif; ?>
+                                </p>
+                                <div class="btn-container">
+                                    <?php if ($hasPersonalInfo && $hasProfilePicture) : ?>
+                                        <?php if ($appointmentBooked) : ?>
+                                            <?php if ($requirementsUploaded) : ?>
+                                                <span class="check-mark"><i class="fas fa-check-circle icon-success"></i> Completed</span>
+                                                <a href="upload_requirements.php?action=edit" class="btn btn-primary">Edit Requirements</a>
+                                            <?php else : ?>
+                                                <a href="upload_requirements.php" class="btn btn-primary">Go to Step 3</a>
+                                            <?php endif; ?>
+                                        <?php else : ?>
+                                            <button class="btn btn-primary" disabled>Go to Step 3</button>
+                                        <?php endif; ?>
+                                    <?php else : ?>
+                                        <button class="btn btn-primary" disabled>Go to Step 3</button>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Step 4: Payment -->
+                        <div class="card text-center step-card">
+                            <div class="card-header">Step 4</div>
                             <div class="card-body step-card-body">
                                 <h5 class="card-title">Payment</h5>
                                 <p class="card-text">
-                                    <?php if ($paymentReceiptUploaded) : ?>
-                                        <i class="fas fa-check-circle icon-success"></i> Receipt Uploaded
+                                    <?php if ($paymentReceiptStatus) : ?>
+                                        <?php if ($paymentReceiptStatus == 'Approved') : ?>
+                                            <i class="fas fa-check-circle icon-success"></i> Receipt Uploaded
+                                        <?php elseif ($paymentReceiptStatus == 'Rejected') : ?>
+                                            <i class="fas fa-times-circle icon-fail"></i> Receipt Uploaded
+                                        <?php else : ?>
+                                            <i class="fas fa-hourglass-half icon-pending"></i> Receipt Uploaded
+                                        <?php endif; ?>
                                     <?php else : ?>
-                                        <i class="fas fa-times-circle icon-fail"></i> Upload Receipt
+                                        <i class="fas fa-times-circle icon-fail"></i> Receipt Uploaded
                                     <?php endif; ?>
                                 </p>
                                 <div class="btn-container">
                                     <?php if ($requirementsUploaded) : ?>
                                         <?php if ($paymentReceiptUploaded) : ?>
                                             <span class="check-mark"><i class="fas fa-check-circle icon-success"></i> Completed</span>
+                                            <a href="payment.php?action=edit" class="btn btn-primary">Edit Payment</a>
                                         <?php else : ?>
-                                            <a href="payment.php" class="btn btn-primary">Go to Step 3</a>
+                                            <a href="payment.php" class="btn btn-primary">Go to Step 4</a>
                                         <?php endif; ?>
                                     <?php else : ?>
-                                        <button class="btn btn-primary" disabled>Go to Step 3</button>
+                                        <button class="btn btn-primary" disabled>Go to Step 4</button>
                                     <?php endif; ?>
                                 </div>
                             </div>

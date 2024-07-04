@@ -1,28 +1,37 @@
 <?php
+session_start();
+
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header("Location: login.php");
+    exit;
+}
+
 include 'connection.php';
 
-$userId = isset($_GET['user_id']) ? $_GET['user_id'] : 0;
-$action = isset($_GET['action']) ? $_GET['action'] : '';
-if ($userId && ($action === 'approve' || $action === 'reject')) {
-    $status = ($action === 'approve') ? 'Approved' : 'Rejected';
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $userId = $_POST['user_id'];
+    $action = $_POST['action'];
+    $remarks = $_POST['remarks'];
 
-    // Update profile status in the database
-    $stmt = $conn->prepare("UPDATE profile SET status = ? WHERE user_id = ?");
-    if (!$stmt) {
-        error_log("Preparation failed: (" . $conn->errno . ") " . $conn->error);
-        die("Preparation failed: (" . $conn->errno . ") " . $conn->error);
+    $status = ($action == 'approve') ? 'Approved' : 'Rejected';
+
+    // Ensure remarks are not empty when rejecting
+    if ($action == 'reject' && empty($remarks)) {
+        $_SESSION['error_message'] = "Remarks are required when rejecting a profile.";
+        header("Location: view_profile.php?user_id=$userId");
+        exit;
     }
-    $stmt->bind_param("si", $status, $userId);
-    if (!$stmt->execute()) {
-        error_log("Execution failed: (" . $stmt->errno . ") " . $stmt->error);
-        die("Execution failed: (" . $stmt->errno . ") " . $stmt->error);
+
+    $stmt = $conn->prepare("UPDATE profile SET status = ?, remarks = ? WHERE user_id = ?");
+    $stmt->bind_param("ssi", $status, $remarks, $userId);
+    if ($stmt->execute()) {
+        $_SESSION['success_message'] = "Profile status updated successfully.";
+    } else {
+        $_SESSION['error_message'] = "Failed to update profile status.";
     }
     $stmt->close();
 
-    // Redirect back to the user monitoring page
-    header("Location: monitor_users.php");
+    header("Location: view_profile.php?user_id=$userId");
     exit;
-} else {
-    die("Invalid user ID or action.");
 }
 ?>

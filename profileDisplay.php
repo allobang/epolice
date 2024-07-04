@@ -1,5 +1,12 @@
 <?php
+session_start();
+require_once 'includes/auth.php'; // Use require_once to ensure it's included only once
+
+require_once 'connection.php';
+require_once 'functions.php';
+
 include 'layout/head.php';
+
 $firstname = '';
 $lastname = '';
 $middlename = '';
@@ -12,9 +19,11 @@ $formattedBirthdate = '';
 $citizenship = '';
 $gender = '';
 $profilepicture = '';
+$remarks = '';
+
 if (isset($_SESSION['userid'])) {
     $userId = $_SESSION['userid'];
-    $stmt = $conn->prepare("SELECT firstname, lastname, middlename, address, city, province, zipcode, birthplace, birthdate, citizenship, gender, profilepicture FROM profile WHERE user_id = ?");
+    $stmt = $conn->prepare("SELECT firstname, lastname, middlename, address, city, province, zipcode, birthplace, birthdate, citizenship, gender, profilepicture, remarks FROM profile WHERE user_id = ?");
     $stmt->bind_param("i", $userId);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -28,23 +37,18 @@ if (isset($_SESSION['userid'])) {
         $province = $row['province'];
         $zipcode = $row['zipcode'];
         $birthplace = $row['birthplace'];
-        $birthdate = $row['birthdate']; // Format this as needed
+        $birthdate = $row['birthdate'];
         $formattedBirthdate = date('m/d/Y', strtotime($birthdate));
         $citizenship = $row['citizenship'];
         $gender = $row['gender'];
         $profilepicture = $row['profilepicture'];
+        $remarks = $row['remarks'];
     }
     $stmt->close();
 }
 ?>
 
 <!doctype html>
-<!-- 
-* Bootstrap Simple Admin Template
-* Version: 2.1
-* Author: Alexis Luna
-* Website: https://github.com/alexis-luna/bootstrap-simple-admin-template
--->
 <html lang="en">
 
 <body>
@@ -58,7 +62,7 @@ if (isset($_SESSION['userid'])) {
                         <!-- First Column -->
                         <div class="col-md-4">
                             <div class="card mb-3">
-                                <img class="card-img-top" src="assets/img/profile/<?php echo htmlspecialchars($profilepicture); ?>" alt="Card image cap">
+                                <img class="card-img-top" src="assets/img/profile/<?php echo htmlspecialchars($profilepicture); ?>" alt="Profile picture">
                                 <div class="card-body text-center">
                                     <a class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">
                                         <i class="fas fa-file-upload"></i> Upload Image
@@ -68,7 +72,6 @@ if (isset($_SESSION['userid'])) {
                         </div>
 
                         <!-- modal part -->
-
                         <div class="modal fade" id="exampleModal" role="dialog" tabindex="-1">
                             <div class="modal-dialog">
                                 <div class="modal-content">
@@ -81,8 +84,7 @@ if (isset($_SESSION['userid'])) {
                                             <div class="mb-3">
                                                 <input class="form-control" type="file" id="formFile" name="uploadedFile">
                                             </div>
-                                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i>
-                                                Save</button>
+                                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save</button>
                                         </form>
                                     </div>
                                     <div class="modal-footer">
@@ -91,7 +93,6 @@ if (isset($_SESSION['userid'])) {
                                 </div>
                             </div>
                         </div>
-
                         <!-- end modal part -->
 
                         <!-- Second Column -->
@@ -101,52 +102,38 @@ if (isset($_SESSION['userid'])) {
                                     <div class="row">
                                         <!-- Left Column -->
                                         <div class="col-md-6">
-                                            <p class="card-text"><b>First Name:</b>
-                                                <?php echo htmlspecialchars($firstname); ?>
-                                            </p>
-                                            <p class="card-text"><b>Last Name:</b>
-                                                <?php echo htmlspecialchars($lastname); ?>
-                                            </p>
-                                            <p class="card-text"><b>Middle Name:</b>
-                                                <?php echo htmlspecialchars($middlename); ?>
-                                            </p>
-                                            <p class="card-text"><b>Birthdate:</b>
-                                                <?php echo htmlspecialchars($formattedBirthdate); ?>
-                                            </p>
-                                            <p class="card-text"><b>Gender:</b>
-                                                <?php echo htmlspecialchars($gender); ?>
-                                            </p>
+                                            <p class="card-text"><b>First Name:</b> <?php echo htmlspecialchars($firstname); ?></p>
+                                            <p class="card-text"><b>Last Name:</b> <?php echo htmlspecialchars($lastname); ?></p>
+                                            <p class="card-text"><b>Middle Name:</b> <?php echo htmlspecialchars($middlename); ?></p>
+                                            <p class="card-text"><b>Birthdate:</b> <?php echo htmlspecialchars($formattedBirthdate); ?></p>
+                                            <p class="card-text"><b>Gender:</b> <?php echo htmlspecialchars($gender); ?></p>
 
-                                            <a href="profile.php?user_id=<?php echo $userId; ?>" class="btn btn-primary">
-                                                <i class="fas fa-edit"></i> Edit
-                                            </a>
+                                            <a href="profile.php?user_id=<?php echo $userId; ?>" class="btn btn-primary"><i class="fas fa-edit"></i> Edit</a>
                                         </div>
                                         <!-- Right Column -->
                                         <div class="col-md-6">
-                                            <p class="card-text"><b>Address:</b>
-                                                <?php echo htmlspecialchars($address); ?>
-                                            </p>
-                                            <p class="card-text"><b>City:</b>
-                                                <?php echo htmlspecialchars($city); ?>
-                                            </p>
-                                            <p class="card-text"><b>Province:</b>
-                                                <?php echo htmlspecialchars($province); ?>
-                                            </p>
-                                            <p class="card-text"><b>ZIP:</b>
-                                                <?php echo htmlspecialchars($zipcode); ?>
-                                            </p>
-                                            <p class="card-text"><b>Citizenship:</b>
-                                                <?php echo htmlspecialchars($citizenship); ?>
-                                            </p>
+                                            <p class="card-text"><b>Address:</b> <?php echo htmlspecialchars($address); ?></p>
+                                            <p class="card-text"><b>City:</b> <?php echo htmlspecialchars($city); ?></p>
+                                            <p class="card-text"><b>Province:</b> <?php echo htmlspecialchars($province); ?></p>
+                                            <p class="card-text"><b>ZIP:</b> <?php echo htmlspecialchars($zipcode); ?></p>
+                                            <p class="card-text"><b>Citizenship:</b> <?php echo htmlspecialchars($citizenship); ?></p>
                                         </div>
+                                    </div>
+                                    <?php if ($remarks): ?>
+                                    <div class="row mt-3">
+                                        <div class="col-md-12">
+                                            <p class="card-text"><b>Admin Remarks:</b> <?php echo htmlspecialchars($remarks); ?></p>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+                                    <div class="text-center mt-3">
+                                        <a href="newClearance.php" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
                     <!-- Profile card -->
-
                     <!-- End of Profile card -->
                 </div>
             </div>
@@ -166,19 +153,14 @@ if (isset($_SESSION['userid'])) {
 
         .profile-img {
             width: 200px;
-            /* Set both width and height to the same value for a square */
             height: 200px;
             border-radius: 0;
-            /* Explicitly set to 0 to ensure no rounding */
             border: 3px solid #007bff;
-            /* Bootstrap primary color */
             object-fit: cover;
-            /* Ensures the image covers the area without stretching */
         }
 
         .card-title {
             color: #007bff;
-            /* Bootstrap primary color */
             margin-bottom: 1rem;
         }
 
@@ -187,6 +169,7 @@ if (isset($_SESSION['userid'])) {
         }
     </style>
 
-
-
     <?php include 'layout/foot.php'; ?>
+</body>
+
+</html>

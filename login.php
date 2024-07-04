@@ -1,10 +1,4 @@
 <!doctype html>
-<!-- 
-* Bootstrap Simple Admin Template
-* Version: 2.1
-* Author: Alexis Luna
-* Website: https://github.com/alexis-luna/bootstrap-simple-admin-template
--->
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -23,6 +17,13 @@
                         <img class="brand" src="assets/img/bootstraper-logo.png" alt="bootstraper logo">
                     </div>
                     <h6 class="mb-4 text-muted">Login to your account</h6>
+                    <?php
+                    session_start();
+                    if (isset($_SESSION['login_error'])) {
+                        echo '<div class="alert alert-danger" role="alert">' . $_SESSION['login_error'] . '</div>';
+                        unset($_SESSION['login_error']);
+                    }
+                    ?>
                     <form action="loginAction.php" method="post">
                         <div class="mb-3 text-start">
                             <label for="username" class="form-label">Email</label>

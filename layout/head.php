@@ -1,20 +1,5 @@
-<?php
-include('includes/init.php');
-include('includes/auth.php');
-include('includes/userProfile.php');
-checkUserLoggedIn()
-?>
-
-
 <!doctype html>
-<!-- 
-* Bootstrap Simple Admin Template
-* Version: 2.1
-* Author: Alexis Luna
-* Website: https://github.com/alexis-luna/bootstrap-simple-admin-template
--->
 <html lang="en">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -28,5 +13,7 @@ checkUserLoggedIn()
     <link href="assets/vendor/flagiconcss/css/flag-icon.min.css" rel="stylesheet">
     <link href="assets/vendor/airdatepicker/css/datepicker.min.css" rel="stylesheet">
     <link href="assets/vendor/mdtimepicker/mdtimepicker.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.css">
 </head>
 <body>

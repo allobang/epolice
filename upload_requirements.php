@@ -10,6 +10,27 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 
 $user_id = $_SESSION['userid'];
 
+$remarks = [
+    'valid_id' => '',
+    'barangay_clearance' => ''
+];
+
+// Fetch remarks for the documents
+$stmt = $conn->prepare("
+    SELECT document_type, remarks
+    FROM documents
+    WHERE user_id = ? AND (document_type = 'valid_id' OR document_type = 'barangay_clearance')
+");
+$stmt->bind_param('i', $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+while ($row = $result->fetch_assoc()) {
+    if (isset($remarks[$row['document_type']])) {
+        $remarks[$row['document_type']] = $row['remarks'];
+    }
+}
+$stmt->close();
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $upload_dir = 'uploads/user_' . $user_id;
 
@@ -23,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_FILES['valid_id'])) {
         $valid_id_path = $upload_dir . '/valid_id/' . basename($_FILES['valid_id']['name']);
         if (move_uploaded_file($_FILES['valid_id']['tmp_name'], $valid_id_path)) {
-            $stmt = $conn->prepare("INSERT INTO documents (user_id, document_type, file_path, uploaded_at) VALUES (?, 'valid_id', ?, NOW())");
+            $stmt = $conn->prepare("REPLACE INTO documents (user_id, document_type, file_path, uploaded_at) VALUES (?, 'valid_id', ?, NOW())");
             $stmt->bind_param('is', $user_id, $valid_id_path);
             $stmt->execute();
             $stmt->close();
@@ -34,14 +55,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_FILES['barangay_clearance'])) {
         $barangay_clearance_path = $upload_dir . '/barangay_clearance/' . basename($_FILES['barangay_clearance']['name']);
         if (move_uploaded_file($_FILES['barangay_clearance']['tmp_name'], $barangay_clearance_path)) {
-            $stmt = $conn->prepare("INSERT INTO documents (user_id, document_type, file_path, uploaded_at) VALUES (?, 'barangay_clearance', ?, NOW())");
+            $stmt = $conn->prepare("REPLACE INTO documents (user_id, document_type, file_path, uploaded_at) VALUES (?, 'barangay_clearance', ?, NOW())");
             $stmt->bind_param('is', $user_id, $barangay_clearance_path);
             $stmt->execute();
             $stmt->close();
         }
     }
 
-    header("Location: newClearance.php"); // Redirect to a success page
+    header("Location: upload_requirements.php"); // Redirect to reload the page and see remarks
     exit;
 }
 ?>
@@ -78,14 +99,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                             <div class="form-group">
                                                 <label for="valid_id">Upload Valid ID</label>
                                                 <input type="file" class="form-control" id="valid_id" name="valid_id" required>
+                                                <?php if ($remarks['valid_id']): ?>
+                                                    <div class="mt-2">
+                                                        <p class="card-text"><b>Remarks:</b> <?php echo htmlspecialchars($remarks['valid_id']); ?></p>
+                                                    </div>
+                                                <?php endif; ?>
                                             </div>
                                             <div class="form-group">
                                                 <label for="barangay_clearance">Upload Barangay Clearance</label>
                                                 <input type="file" class="form-control" id="barangay_clearance" name="barangay_clearance" required>
+                                                <?php if ($remarks['barangay_clearance']): ?>
+                                                    <div class="mt-2">
+                                                        <p class="card-text"><b>Remarks:</b> <?php echo htmlspecialchars($remarks['barangay_clearance']); ?></p>
+                                                    </div>
+                                                <?php endif; ?>
                                             </div>
                                             <button type="submit" class="btn btn-primary">Submit</button>
                                         </form>
                                     </div>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <a href="newClearance.php" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
                                 </div>
                             </div>
                         </div>

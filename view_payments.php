@@ -11,7 +11,7 @@ include 'connection.php';
 $selectedUserId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 0;
 
 if ($selectedUserId > 0) {
-    $stmt = $conn->prepare("SELECT id, file_path, uploaded_at, status FROM payment_receipts WHERE user_id = ?");
+    $stmt = $conn->prepare("SELECT id, file_path, uploaded_at, status, remarks FROM payment_receipts WHERE user_id = ?");
     $stmt->bind_param("i", $selectedUserId);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -47,8 +47,18 @@ if ($selectedUserId > 0) {
                                             <p><a href="<?= htmlspecialchars($receipt['file_path']) ?>" target="_blank">View Receipt</a></p>
                                             <p>Uploaded At: <?= htmlspecialchars($receipt['uploaded_at']) ?></p>
                                             <p>Status: <?= htmlspecialchars($receipt['status']) ?></p>
-                                            <a href="update_payment_status.php?receipt_id=<?= $receipt['id'] ?>&action=approve" class="btn btn-success">Approve</a>
-                                            <a href="update_payment_status.php?receipt_id=<?= $receipt['id'] ?>&action=reject" class="btn btn-danger">Reject</a>
+                                            <?php if (!empty($receipt['remarks'])): ?>
+                                                <p>Remarks: <?= htmlspecialchars($receipt['remarks']) ?></p>
+                                            <?php endif; ?>
+                                            <form action="update_payment_status.php" method="post">
+                                                <div class="form-group">
+                                                    <label for="remarks_<?= $receipt['id'] ?>">Remarks:</label>
+                                                    <textarea name="remarks" id="remarks_<?= $receipt['id'] ?>" class="form-control"><?= htmlspecialchars($receipt['remarks']) ?></textarea>
+                                                </div>
+                                                <input type="hidden" name="receipt_id" value="<?= $receipt['id'] ?>">
+                                                <button type="submit" name="action" value="approve" class="btn btn-success">Approve</button>
+                                                <button type="submit" name="action" value="reject" class="btn btn-danger">Reject</button>
+                                            </form>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>

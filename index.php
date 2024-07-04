@@ -1,14 +1,21 @@
 <?php
-// Rest of your index.php code...
+session_start();
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header("Location: login.php");
+    exit;
+}
+
+if ($_SESSION['user_type'] === 'admin') {
+    header("Location: monitor_users.php");
+    exit;
+} else {
+    header("Location: newClearance.php");
+    exit;
+}
 ?>
 
+
 <!doctype html>
-<!-- 
-* Bootstrap Simple Admin Template
-* Version: 2.1
-* Author: Alexis Luna
-* Website: https://github.com/alexis-luna/bootstrap-simple-admin-template
--->
 <html lang="en">
 
 <?php include 'layout/head.php'; ?>

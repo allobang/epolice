@@ -1,4 +1,19 @@
--- Table structure for table `clearances`
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+
+CREATE DATABASE IF NOT EXISTS `epoliceclearance`;
+USE `epoliceclearance`;
+
+CREATE TABLE `appointments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `appointment_date` date NOT NULL,
+  `time_slot` varchar(50) NOT NULL,
+  `status` varchar(50) NOT NULL DEFAULT 'Scheduled',
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `appointments_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE `clearances` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
@@ -6,38 +21,37 @@ CREATE TABLE `clearances` (
   `status` varchar(50) NOT NULL,
   `date_applied` datetime NOT NULL,
   `date_approved` datetime DEFAULT NULL,
+  `hit_status` enum('Pending','Hit','No Hit') DEFAULT 'Pending',
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `clearances_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Table structure for table `documents`
 CREATE TABLE `documents` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
   `document_type` varchar(50) NOT NULL,
   `file_path` varchar(255) NOT NULL,
   `uploaded_at` datetime NOT NULL,
+  `status` varchar(20) DEFAULT 'Pending',
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `documents_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Table structure for table `payments`
-CREATE TABLE `payments` (
+CREATE TABLE `payment_receipts` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `clearance_id` int(11) NOT NULL,
-  `amount` decimal(10,2) NOT NULL,
-  `date_paid` datetime NOT NULL,
-  `payment_method` varchar(50) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `uploaded_at` datetime NOT NULL,
+  `status` varchar(50) NOT NULL DEFAULT 'Pending',
   PRIMARY KEY (`id`),
-  KEY `clearance_id` (`clearance_id`),
-  CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`clearance_id`) REFERENCES `clearances` (`id`)
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `payment_receipts_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Table structure for table `profile`
 CREATE TABLE `profile` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
   `firstname` varchar(255) NOT NULL,
   `lastname` varchar(255) NOT NULL,
@@ -52,16 +66,19 @@ CREATE TABLE `profile` (
   `citizenship` varchar(255) NOT NULL,
   `gender` varchar(50) NOT NULL,
   `profilepicture` varchar(255) DEFAULT NULL,
-  `status` varchar(50) DEFAULT 'Pending'
+  `status` varchar(50) DEFAULT 'Pending',
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `profile_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Table structure for table `users`
 CREATE TABLE `users` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
   `user_type` varchar(255) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`ID`),
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

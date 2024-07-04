@@ -1,4 +1,12 @@
 <?php
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header("Location: login.php");
+    exit;
+}
+
+require_once 'connection.php'; // Ensure this is the correct path to your database connection file
+require_once 'functions.php';
+
 $userId = $_SESSION['userid'];
 $userProfile = fetchUserProfile($conn, $userId);
 $hasProfile = $userProfile !== null;
@@ -17,8 +25,11 @@ $userType = $_SESSION['user_type'];
             <li>
                 <a href="newClearance.php"><i class="fas fa-home"></i> Dashboard</a>
             </li>
-            <li>
+            <!-- <li>
                 <a href="<?php echo $link; ?>"><i class="fas fa-file-invoice"></i> Profile</a>
+            </li> -->
+            <li>
+                <a href="request_clearance.php"><i class="fas fa-file-alt"></i> Request New Clearance</a>
             </li>
         <?php endif; ?>
         <?php if ($userType === 'admin'): ?>
